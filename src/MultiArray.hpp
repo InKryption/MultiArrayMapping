@@ -26,54 +26,50 @@ namespace ink {
 		return divFact - dimensionSize * (divFact / dimensionSize);
 	}
 	
-	template<typename... _Size_Ts> requires( (std::convertible_to<_Size_Ts , size_t>&&...) && (sizeof...(_Size_Ts) > 0) )
-	static constexpr size_t
-	MapFromDimension(_Size_Ts... t)
-	{
-		const auto tuple = std::tie(t...);
-		
-		/*
-			 
-		*/
-		
-	}
-	
 	namespace detail {
 		
 		template<typename T>
 		struct ARRAY_MAP_LAYER {
-			enum { ELEMENT_COUNT = 1 };
+			enum { TOTAL_ELEMENT_COUNT = 1 };
 			using type = std::remove_reference_t<T>;
 			using sub_type = void;
 		};
 		
 		template<typename T, size_t N>
 		struct ARRAY_MAP_LAYER<T[N]> {
-			enum { ELEMENT_COUNT = N };
 			using type = T[N];
 			using sub_type = ARRAY_MAP_LAYER<decltype(*std::declval<T[N]>())>;
+			enum {
+				TOTAL_ELEMENT_COUNT = N
+			};
+			
 		};
 		
 		template<typename T, size_t N>
 		struct ARRAY_MAP_LAYER<T(&)[N]> {
-			enum { ELEMENT_COUNT = N };
 			using type = T[N];
 			using sub_type = ARRAY_MAP_LAYER<decltype(std::declval<T[N]>()[0])>;
+			enum {
+				TOTAL_ELEMENT_COUNT = N,
+			};
 		};
 		
 		template<typename T>
 		struct ARRAY_MAP_INFO {
 			
+			using TOP_LAYER = ARRAY_MAP_LAYER<T>;
+			
 			private:
 			
 			// First: total number of elements in (multidimensional) array T.
 			// Second: total number of layers in multidimensional array T.
-			static constexpr auto
+			template<typename _T> static constexpr auto
 			GetMappingArrayInfo_impl(size_t size = 1, size_t depth = 0)
 			{
 				
-				using impl = ARRAY_MAP_LAYER<T>;
-				size_t size_out = size * impl::ELEMENT_COUNT;
+				using impl = ARRAY_MAP_LAYER<_T>;
+				
+				size_t size_out = size * impl::TOTAL_ELEMENT_COUNT;
 				
 				if constexpr(std::is_array_v<typename impl::type>)
 				{ return GetMappingArrayInfo_impl<typename impl::sub_type::type>(size_out, depth + 1); }
@@ -86,11 +82,11 @@ namespace ink {
 			INFO = GetMappingArrayInfo_impl<T>();
 			
 			public:
-			using TOP_LAYER = ARRAY_MAP_LAYER<T>;
-			static constexpr size_t
-				ELEMENT_COUNT = INFO.first,
+			
+			enum {
+				TOTAL_ELEMENT_COUNT = INFO.first,
 				DEPTH = INFO.second
-			;
+			};
 			
 		};
 		
@@ -99,6 +95,8 @@ namespace ink {
 			
 			public: using
 			info = ARRAY_MAP_INFO<T>;
+			
+			
 			
 		};
 		
