@@ -7,61 +7,69 @@ namespace ink::Rebind {
 	
 	namespace detail {
 		
-		// A type parameter pack struct
-		template<typename...>
-		struct type_list
-		{};
+		template<typename T, typename TT = typename std::remove_reference<T>::type>
+		using tuple_reverse =
+		decltype(
+			[]<size_t... I>(T&& t, std::index_sequence<I...>) constexpr
+			{ return std::make_tuple(std::get<sizeof...(I) - 1 - I>(std::forward<T>(t))...); }
+			(	std::forward<T>( std::declval<T&&>() ),
+				std::make_index_sequence<std::tuple_size<TT>::value>()	)
+		);
 		
+		template<typename...> struct type_list;
 		
-		
-		template<typename A, template<typename...> typename B> struct rebind_impl;
-		
-		template<template<typename...> typename A, template<typename...> typename B, typename... T>
-		struct rebind_impl<A<T...>, B>
-		{ using type = B<T...>; };
-		
-		// Represents the instantiation of template B with the parameters of the instantiated template type A
-		template<typename A, template<typename...> typename B>
-		using rebind = typename rebind_impl<A,B>::type;
-		
-		
-		
-		template<size_t N, typename T>
-		using get_n = std::tuple_element<N, rebind<T, std::tuple>>::type;
-		
-		
-		
+		template<typename A, template<typename...> typename B = type_list> struct rebind_impl;
 		template<typename A, typename B> struct concat_impl;
 		
-		template<template<typename...> typename A, template<typename...> typename B, typename...T1, typename...T2>
-		struct concat_impl<A<T1...>, B<T2...>>
-		{ using type = type_list<T1..., T2...>; };
 		
-		// Concatenate the type arguments of A and B into a type_list.
-		template<typename A, typename B>
-		using concat = concat_impl<A,B>::type;
+		// A type parameter pack struct
+		// Also holds an internal alias to rebind
+		template<typename... T> struct type_list
+		{
+			
+			using tuple = std::tuple<T...>;
+			
+			template<template<typename...> typename U>
+			using rebind = typename rebind_impl<type_list, U>::type;
+			
+			template<typename B>
+			using concat = typename concat_impl<type_list, B>::type;
+			
+			template<size_t N>
+			using get_n = std::tuple_element_t< N, rebind<std::tuple> >;
+			
+			
+			
+		};
 		
+		template<template<typename...> typename B, typename... T>
+		struct rebind_impl<type_list<T...>, B>
+		{ using type = B<T...>; };
 		
+		template<template<typename...> typename A, typename... T>
+		struct rebind_impl<A<T...>, type_list>
+		{ using type = type_list<T...>; };
 		
-		template<typename T> struct remove_first_impl;
+		// Alias a type_list with the type parameters of typename A
+		template<typename A>
+		using rebind = typename rebind_impl<A,type_list>::type;
 		
-		template<template<typename...> typename T, typename discard, typename... ts>
-		struct remove_first_impl<T<discard, ts...>>
-		{ using type = type_list<ts...>; };
+		template<typename... a, typename... b>
+		struct concat_impl<type_list<a...>,type_list<b...>>
+		{ using type = type_list<a...,b...>; };
 		
-		template<typename T>
-		using remove_first = remove_first_impl<T>::type;
+		template<typename T> struct pop_last_impl;
 		
-		
+		template<typename... Keep, typename Discard>
+		struct pop_last_impl<type_list<Discard, Keep...>>
+		{
+			using type = type_list<Keep..., Discard>;
+		};
 		
 	}
 	
 	using detail::type_list;
 	using detail::rebind;
-	using detail::get_n;
-	using detail::concat;
-	
-	using detail::remove_first;
 	
 }
 

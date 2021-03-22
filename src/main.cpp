@@ -51,6 +51,12 @@ TransposeFromAbsolute(size_t index)
 
 int main() {
 	
+	namespace rb = ink::Rebind;
+	
+	//rb::type_list<int,char>::concat<rb::type_list<bool, size_t>>::get_n<3>;
+		
+	return 0;
+	
 	constexpr size_t
 	W = 3,
 	H = 3,
