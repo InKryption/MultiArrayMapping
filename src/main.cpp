@@ -1,5 +1,19 @@
 #include "main.hpp"
 
+template<typename T, typename TT = typename std::remove_reference<T>::type>
+static constexpr auto
+reverse_tuple(T&& t)
+{
+	auto impl = []<size_t... I>(T&& t, std::index_sequence<I...>) constexpr
+	{ return std::make_tuple(std::get<sizeof...(I) - 1 - I>(std::forward<T>(t))...); };
+	
+    return
+	impl(
+		std::forward<T>(t),
+		std::make_index_sequence<std::tuple_size<TT>::value>()
+	);
+	
+}
 
 /**
  *	@param dimension_sizes Sizes corresponding to the sizes of the arrays to sub-arrays in-order
@@ -21,10 +35,18 @@ TransposeToAbsolute(decltype(dimension_sizes)... indexes)
 	return out;
 }
 
+// don't like how this is rn
+template<size_t... dimension_sizes>
 static constexpr auto
-TransposeFromAbsolute(size_t index, std::initializer_list<size_t> dimension_sizes)
+TransposeFromAbsolute(size_t index)
 {
+	std::tuple<decltype(dimension_sizes)...> OUT;
+	size_t	factor = 1;
 	
+	std::apply(	[&](auto&... i) constexpr
+				{ (( i= ( (index / factor) - (i / factor) ) % dimension_sizes, factor*=dimension_sizes),...); }, OUT );
+	
+	return reverse_tuple(OUT);
 }
 
 int main() {
@@ -68,6 +90,7 @@ int main() {
 		},
 	};
 	
+	constexpr auto indices = (TransposeFromAbsolute<D,H,W>(8));
 	constexpr auto test3D = ARR3D[0][0][2];
 	constexpr auto test1D = ARR1D[TransposeToAbsolute<D,H,W>(0,0,2)];
 	return 0;
