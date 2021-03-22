@@ -1,11 +1,74 @@
 #include "main.hpp"
 
 
+/**
+ *	@param dimension_sizes Sizes corresponding to the sizes of the arrays to sub-arrays in-order
+ *	@param indexes Indexes corresponding to the absolute index of interest.
+*/
+template<size_t... dimension_sizes>
+static constexpr auto
+TransposeToAbsolute(decltype(dimension_sizes)... indexes)
+{
+	constexpr auto iseq = std::make_index_sequence<sizeof...(dimension_sizes)>();
+	const std::tuple TUP = std::make_tuple(std::make_pair(dimension_sizes,indexes)...);
+	
+	size_t	out = 0,
+			factor = (dimension_sizes*...);
+	
+	std::apply(	[&](const auto&... i) constexpr
+				{ ((factor/= i.first, out+= i.second * factor),...); }, TUP );
+	
+	return out;
+}
+
+static constexpr auto
+TransposeFromAbsolute(size_t index, std::initializer_list<size_t> dimension_sizes)
+{
+	
+}
+
 int main() {
 	
-	using arrMapLayer = ink::detail::ARRAY_MAP_LAYER<int>;
+	constexpr size_t
+	W = 3,
+	H = 3,
+	D = 3;
 	
+	constexpr size_t ARR1D[] =
+	{
+		0	,	1	,	2	,
+		3	,	4	,	5	,
+		6	,	7	,	8	,
+		
+		9	,	10	,	11	,
+		12	,	13	,	14	,
+		15	,	16	,	17	,
+		
+		18	,	19	,	20	,
+		21	,	22	,	23	,
+		24	,	25	,	26	,
+	};
 	
+	constexpr size_t ARR3D[3][3][3] =
+	{
+		{
+			{0	,	1	,	2	},
+			{3	,	4	,	5	},
+			{6	,	7	,	8	}
+		},
+		{
+			{9	,	10	,	11	},
+			{12	,	13	,	14	},
+			{15	,	16	,	17	}
+		},
+		{
+			{18	,	19	,	20	},
+			{21	,	22	,	23	},
+			{24	,	25	,	26	}
+		},
+	};
 	
+	constexpr auto test3D = ARR3D[0][0][2];
+	constexpr auto test1D = ARR1D[TransposeToAbsolute<D,H,W>(0,0,2)];
 	return 0;
 }

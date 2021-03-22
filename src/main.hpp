@@ -1,4 +1,7 @@
+
+#include <assert.h>
 #include <stdio.h>
+
 #include <concepts>
 #include <utility>
 #include <vector>
@@ -7,4 +10,3 @@
 #include <mutex>
 
 #include "Rebind.hpp"
-#include "MultiArray.hpp"
